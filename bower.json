@@ -1,0 +1,27 @@
+{
+  "name": "pouchdb-all-dbs",
+  "main": "dist/pouchdb.all-dbs.js",
+  "version": "0.1.0",
+  "homepage": "https://github.com/nolanlawson/pouchdb-all-dbs",
+  "authors": [
+    "Nolan Lawson <nolan.lawson@gmail.com>"
+  ],
+  "description": "allDbs() plugin for PouchDB",
+  "moduleType": [
+    "node"
+  ],
+  "keywords": [
+    "pouchdb",
+    "couchdb",
+    "alldbs",
+    "plugin"
+  ],
+  "license": "Apache 2",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
