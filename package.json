@@ -25,8 +25,8 @@
     "test-browser": "./bin/test-browser.js",
     "jshint": "jshint -c .jshintrc *.js test/test.js",
     "test": "npm run jshint && ./bin/run-test.sh",
-    "build": "mkdir -p dist && browserify index.js -o dist/pouchdb.mypluginname.js && npm run min",
-    "min": "uglifyjs dist/pouchdb.mypluginname.js -mc > dist/pouchdb.mypluginname.min.js",
+    "build": "mkdir -p dist && browserify index.js -o dist/pouchdb.all-dbs.js && npm run min",
+    "min": "uglifyjs dist/pouchdb.all-dbs.js -mc > dist/pouchdb.all-dbs.min.js",
     "dev": "browserify test/test.js > test/test-bundle.js && npm run dev-server",
     "dev-server": "./bin/dev-server.js",
     "coverage": "npm test --coverage && istanbul check-coverage --lines 100 --function 100 --statements 100 --branches 100"
