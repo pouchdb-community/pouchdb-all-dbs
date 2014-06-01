@@ -77,7 +77,7 @@ function tests(dbName) {
       })).then(function () {
         return setTimeoutPromise(100);
       }).then(function () {
-        return PouchDB.destroy(PouchDB.allDbsName());
+        return PouchDB.resetAllDbs();
       });
     });
 

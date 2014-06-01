@@ -6,8 +6,20 @@ var TaskQueue = require('./taskqueue');
 module.exports = function (Pouch) {
 
   var ALL_DBS_NAME = 'pouch__all_dbs__';
-  var pouch = new Pouch(ALL_DBS_NAME);
+  var pouch;
   var queue = new TaskQueue();
+  
+  function init() {
+    queue.add(function (callback) {
+      new Pouch(ALL_DBS_NAME).then(function (db) {
+        pouch = db;
+        callback();
+      }).catch(function (err) {
+        console.error(err);
+        callback(err);
+      });
+    });
+  }
 
   function normalize(name) {
     return name.replace(/^_pouch_/, ''); // TODO: remove when fixed in Pouch
@@ -58,24 +70,32 @@ module.exports = function (Pouch) {
   });
 
   Pouch.allDbs = utils.toPromise(function (callback) {
-    console.log('adding to queue');
     queue.add(function (callback) {
-      console.log('being called');
       pouch.allDocs().then(function (res) {
         var dbs = res.rows.map(function (row) {
           return row.key;
         });
         callback(null, dbs);
       }).catch(function (err) {
+        console.error(err);
         callback(err);
       });
     }, callback);
   });
 
-  Pouch.allDbsName = function () {
-    return ALL_DBS_NAME;
-  };
-
+  Pouch.resetAllDbs = utils.toPromise(function (callback) {
+    queue.add(function (callback) {
+      pouch.destroy().then(function () {
+        callback();
+      }).catch(function (err) {
+        console.error(err);
+        callback(err);
+      });
+    }, callback);
+    init();
+  });
+  
+  init();
 };
 
 /* istanbul ignore next */
