@@ -28,3 +28,7 @@ env:
   - CLIENT=selenium:firefox COMMAND=test
   - CLIENT=selenium:phantomjs COMMAND=test
   - COMMAND=coverage
+
+matrix:
+  allow_failures:
+  - env: COMMAND=coverage

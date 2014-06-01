@@ -94,8 +94,6 @@ You can also check for 100% code coverage using:
 
     npm run coverage
 
-If you don't like the coverage results, change the values from 100 to something else in `package.json`, or add `/*istanbul ignore */` comments.
-
 
 If you have mocha installed globally you can run single test with:
 ```
@@ -118,4 +116,3 @@ You can run e.g.
     CLIENT=selenium:phantomjs npm test
 
 This will run the tests automatically and the process will exit with a 0 or a 1 when it's done. Firefox uses IndexedDB, and PhantomJS uses WebSQL.
-```

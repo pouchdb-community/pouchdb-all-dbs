@@ -104,7 +104,7 @@ function tests(dbName) {
         });
       });
     });
-    
+
     it('new Pouch registered in allDbs with a promise', function (done) {
       this.timeout(15000);
       var pouchName = dbName;
