@@ -1,7 +1,7 @@
 PouchDB allDbs() plugin
 =====
 
-[![Build Status](https://travis-ci.org/nolanlawson/plugin-all-dbs.svg)](https://travis-ci.org/nolanlawson/pouchdb-all-dbs)
+[![Build Status](https://travis-ci.org/nolanlawson/pouchdb-all-dbs.svg)](https://travis-ci.org/nolanlawson/pouchdb-all-dbs)
 
 `allDbs()` was deprecated in PouchDB 2.0.0, but that doesn't mean it can't live on as a plugin!
 
