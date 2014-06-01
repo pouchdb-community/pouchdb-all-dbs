@@ -1,43 +1,85 @@
-PouchDB Plugin Seed
+PouchDB allDbs() plugin
 =====
 
-[![Build Status](https://travis-ci.org/pouchdb/plugin-seed.svg)](https://travis-ci.org/pouchdb/plugin-seed)
+[![Build Status](https://travis-ci.org/nolanlawson/plugin-all-dbs.svg)](https://travis-ci.org/nolanlawson/pouchdb-all-dbs)
 
-Fork this project to build your first PouchDB plugin.  It contains everything you need to test in Node, WebSQL, and IndexedDB.  It also includes a Travis config file so you
-can automatically run the tests in Travis.
+`allDbs()` was deprecated in PouchDB 2.0.0, but that doesn't mean it can't live on as a plugin!
+
+This plugin exposes the `PouchDB.allDbs()` function, which you can use to list all local databases. It works by listening for `PouchDB.on('created')` and `PouchDB.on('destroyed')` events, and maintains a separate database to store the names of those databases.
+
+Usage
+-----
+
+To use this plugin, include it after `pouchdb.js` in your HTML page:
+
+```html
+<script src="pouchdb.js"></script>
+<script src="pouchdb.all-dbs.js"></script>
+```
+
+This plugin is also available from Bower:
+
+```
+bower install pouchdb-all-dbs
+```
+
+Or to use it in Node.js, just npm install it:
+
+```
+npm install pouchdb-all-dbs
+```
+
+And then do this:
+
+```js
+var PouchDB = require('pouchdb');
+require('pouchdb-all-dbs')(PouchDB);
+```
+
+API
+-----
+
+#### PouchDB.allDbs([callback])
+
+Returns a list of all non-deleted databases.  Example usage:
+
+```js
+PouchDB.allDbs().then(function (dbs) {
+  // dbs is an array of strings, e.g. ['mydb1', 'mydb2']
+}).catch(function (err) {
+  // handle err
+});
+```
+
+Or if you like callbacks, you can use that style instead:
+
+```js
+PouchDB.allDbs(function (err, dbs) {
+  if (err) {
+    // handle err
+  }
+  // dbs is an array of strings, e.g. ['mydb1', 'mydb2']
+});
+```
+
+#### PouchDB.resetAllDbs([callback])
+
+Destroys the separate allDbs database.  You should never need to call this function; I just use it for the unit tests.
+
+Example usage:
+
+```js
+PouchDB.resetAllDbs().then(function () {
+  // allDbs store is now destroyed
+}).catch(function (err) {
+  // handle err
+});
+```
 
 Building
 ----
     npm install
     npm run build
-
-Your plugin is now located at `dist/pouchdb.mypluginname.js` and `dist/pouchdb.mypluginname.min.js` and is ready for distribution.
-
-Getting Started
--------
-
-**First**, change the `name` in `package.json` to whatever you want to call your plugin.  Change the `build` script so that it writes to the desired filename (e.g. `pouchdb.mypluginname.js`).  Also, change the authors, description, git repo, etc.
-
-**Next**, modify the `index.js` to do whatever you want your plugin to do.  Right now it just adds a `pouch.sayHello()` function that says hello:
-
-```js
-exports.sayHello = utils.toPromise(function (callback) {
-  callback(null, 'hello');
-});
-```
-
-**Optionally**, you can add some tests in `tests/test.js`. These tests will be run both in the local database and a remote CouchDB, which is expected to be running at localhost:5984 in "Admin party" mode.
-
-The sample test is:
-
-```js
-
-it('should say hello', function () {
-  return db.sayHello().then(function (response) {
-    response.should.equal('hello');
-  });
-});
-```
 
 Testing
 ----
@@ -76,28 +118,4 @@ You can run e.g.
     CLIENT=selenium:phantomjs npm test
 
 This will run the tests automatically and the process will exit with a 0 or a 1 when it's done. Firefox uses IndexedDB, and PhantomJS uses WebSQL.
-
-What to tell your users
---------
-
-Below is some boilerplate you can use for when you want a real README for your users.
-
-To use this plug, include it after `pouchdb.js` in your HTML page:
-
-```html
-<script src="pouchdb.js"></script>
-<script src="pouchdb.mypluginname.js"></script>
-```
-
-Or to use it in Node.js, just npm install it:
-
-```
-npm install pouchdb-myplugin
-```
-
-And then attach it to the `PouchDB` object:
-
-```js
-var PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-myplugin'));
 ```

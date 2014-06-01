@@ -104,6 +104,37 @@ function tests(dbName) {
         });
       });
     });
+    
+    it('new Pouch registered in allDbs with a promise', function (done) {
+      this.timeout(15000);
+      var pouchName = dbName;
+      dbs = [dbName];
+      function after(err) {
+        PouchDB.destroy(pouchName, function (er) {
+          if (er) {
+            done(er);
+          } else {
+            done(err);
+          }
+        });
+      }
+      // create db
+      new PouchDB(pouchName, function (err) {
+        if (err) {
+          return after(err);
+        }
+        PouchDB.allDbs().then(function (dbs) {
+          // check if pouchName exists in _all_db
+          dbs.some(function (dbname) {
+            return dbname === pouchName;
+          }).should.equal(true, 'pouch exists in allDbs database, dbs are ' +
+              JSON.stringify(dbs) + ', tested against ' + pouchName);
+          after();
+        }).catch(after);
+      });
+    });
+
+
     it('Pouch.destroy removes pouch from allDbs', function (done) {
       var pouchName = dbName;
       dbs = [dbName];
