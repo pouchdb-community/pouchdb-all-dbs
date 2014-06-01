@@ -17,7 +17,7 @@ chai.use(require("chai-as-promised"));
 // more variables you might want
 //
 chai.should(); // var should = chai.should();
-require('bluebird'); // var Promise = require('bluebird');
+var Promise = require('bluebird'); // var Promise = require('bluebird');
 
 var dbs;
 if (process.browser) {
@@ -60,27 +60,31 @@ function tests(dbName) {
     series(functions);
   }
 
+  function setTimeoutPromise(time) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, time);
+    });
+  }
+
   describe('allDbs', function () {
 
-    beforeEach(function () {
-      // Remove old allDbs to prevent DOM exception
-      return PouchDB.destroy(PouchDB.allDbName());
-    });
+    var dbs = [];
 
     afterEach(function () {
       // Remove old allDbs to prevent DOM exception
-      return PouchDB.destroy(PouchDB.allDbName()).then(function () {
-        return PouchDB.destroy(dbName);
+      return Promise.all(dbs.map(function (db) {
+        return PouchDB.destroy(db);
+      })).then(function () {
+        return setTimeoutPromise(100);
       }).then(function () {
-        return PouchDB.destroy(dbName + '_1');
-      }).then(function () {
-        return PouchDB.destroy(dbName + '_2');
+        return PouchDB.destroy(PouchDB.allDbsName());
       });
     });
 
     it('new Pouch registered in allDbs', function (done) {
       this.timeout(15000);
       var pouchName = dbName;
+      dbs = [dbName];
       function after(err) {
         PouchDB.destroy(pouchName, function (er) {
           if (er) {
@@ -102,13 +106,15 @@ function tests(dbName) {
           // check if pouchName exists in _all_db
           dbs.some(function (dbname) {
             return dbname === pouchName;
-          }).should.equal(true, 'pouch exists in allDbs database');
+          }).should.equal(true, 'pouch exists in allDbs database, dbs are ' +
+            JSON.stringify(dbs) + ', tested against ' + pouchName);
           after();
         });
       });
     });
     it('Pouch.destroy removes pouch from allDbs', function (done) {
       var pouchName = dbName;
+      dbs = [dbName];
       // create db
       new PouchDB(pouchName, function (err) {
         if (err) {
@@ -121,7 +127,8 @@ function tests(dbName) {
           // check if pouchName exists in _all_db
           dbs.some(function (dbname) {
             return dbname === pouchName;
-          }).should.equal(true, 'pouch exists in allDbs database');
+          }).should.equal(true, 'pouch exists in allDbs database, dbs are ' +
+              JSON.stringify(dbs) + ', tested against ' + pouchName);
           // remove db
           PouchDB.destroy(pouchName, function (err) {
             if (err) {
@@ -134,7 +141,9 @@ function tests(dbName) {
               // check if pouchName still exists in _all_db
               dbs.some(function (dbname) {
                 return dbname === pouchName;
-              }).should.equal(false, 'pouch no longer exists in allDbs database');
+              }).should.equal(false,
+                  'pouch no longer exists in allDbs database, dbs are ' +
+                  JSON.stringify(dbs) + ', tested against ' + pouchName);
               done();
             });
           });
@@ -143,6 +152,7 @@ function tests(dbName) {
     });
     it('Create Multiple Pouches', function (done) {
       var pouchNames = [dbName + '_1', dbName + '_2'];
+      dbs = pouchNames;
       async(pouchNames.map(function (pouch) {
         return function (callback) {
           new PouchDB(pouch, callback);
@@ -159,7 +169,8 @@ function tests(dbName) {
             // check if pouchName exists in _all_db
             dbs.some(function (dbname) {
               return dbname === pouch;
-            }).should.equal(true, 'pouch name not found in allDbs');
+            }).should.equal(true, 'pouch name not found in allDbs, dbs are ' +
+                JSON.stringify(dbs) + ', tested against ' + pouch);
           });
           // destroy remaining pouches
           async(pouchNames.map(function (pouch) {
@@ -174,6 +185,7 @@ function tests(dbName) {
     });
     it('Create and Destroy Multiple Pouches', function (done) {
       var pouchNames = [dbName + '_1', dbName + '_2'];
+      dbs = pouchNames;
       async(pouchNames.map(function (pouch) {
         return function (callback) {
           new PouchDB(pouch, callback);
@@ -211,7 +223,9 @@ function tests(dbName) {
               pouchNames.forEach(function (pouch) {
                 dbs.some(function (dbname) {
                   return dbname === pouch;
-                }).should.equal(false, 'pouch name found in allDbs after its destroyed');
+                }).should.equal(false,
+                    'pouch name found in allDbs after its destroyed, dbs are ' +
+                    JSON.stringify(dbs) + ', tested against ' + pouch);
               });
               done();
             });
@@ -229,6 +243,7 @@ function tests(dbName) {
     it('Create and Destroy Pouches with and without adapter prefixes',
         function (done) {
       var pouchNames = [dbName + '_1', dbName + '_2'];
+      dbs = pouchNames;
       async(pouchNames.map(function (name) {
         return function (callback) {
           new PouchDB(name, callback);
@@ -246,7 +261,8 @@ function tests(dbName) {
             // check if pouchName exists in allDbs
             dbs.some(function (dbname) {
               return dbname === pouch;
-            }).should.equal(true, 'pouch name not found in allDbs');
+            }).should.equal(true, 'pouch name not found in allDbs, dbs are ' +
+                JSON.stringify(dbs) + ', tested against ' + pouch);
           });
           // destroy pouches
           async(pouchNames.map(function (db) {
@@ -266,7 +282,9 @@ function tests(dbName) {
               pouchNames.forEach(function (pouch) {
                 dbs.some(function (dbname) {
                   return dbname === pouch;
-                }).should.equal(false, 'pouch name found in allDbs after its destroyed');
+                }).should.equal(false,
+                    'pouch name found in allDbs after its destroyed, dbs are ' +
+                    JSON.stringify(dbs) + ', tested against ' + pouch);
               });
               done();
             });
