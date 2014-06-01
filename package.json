@@ -11,14 +11,14 @@
     "pouch",
     "pouchdb",
     "plugin",
-    "seed",
+    "allDbs",
     "couch",
     "couchdb"
   ],
   "author": "",
   "license": "Apache",
   "bugs": {
-    "url": "https://github.com/nolanlawson/pouchdb-all-dbs./issues"
+    "url": "https://github.com/nolanlawson/pouchdb-all-dbs/issues"
   },
   "scripts": {
     "test-node": "TEST_DB=testdb istanbul test ./node_modules/mocha/bin/_mocha test/test.js",
