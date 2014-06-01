@@ -8,9 +8,18 @@ module.exports = function (Pouch) {
   var ALL_DBS_NAME = 'pouch__all_dbs__';
   var pouch;
   var queue = new TaskQueue();
+
+  function log(err) {
+    if (err) {
+      console.error(err); // shouldn't happen
+    }
+  }
   
   function init() {
     queue.add(function (callback) {
+      if (pouch) {
+        return callback();
+      }
       new Pouch(ALL_DBS_NAME).then(function (db) {
         pouch = db;
         callback();
@@ -31,21 +40,19 @@ module.exports = function (Pouch) {
     if (dbName === ALL_DBS_NAME) {
       return;
     }
+    init();
     queue.add(function (callback) {
       pouch.get(dbName).then(function () {
         // db exists, nothing to do
       }).catch(function (err) {
         if (err.name !== 'not_found') {
-          console.error(err);
-          return;
+          throw err;
         }
-        pouch.put({_id: dbName}).catch(function (err) {
-          console.error(err);
-        });
+        return pouch.put({_id: dbName});
       }).then(function () {
         callback();
-      });
-    });
+      }, callback);
+    }, log);
   });
 
   Pouch.on('destroyed', function (dbName) {
@@ -53,23 +60,23 @@ module.exports = function (Pouch) {
     if (dbName === ALL_DBS_NAME) {
       return;
     }
+    init();
     queue.add(function (callback) {
       pouch.get(dbName).then(function (doc) {
-        pouch.remove(doc).catch(function (err) {
-          console.error(err);
-        });
+        return pouch.remove(doc);
       }).catch(function (err) {
         // normally a not_found error; nothing to do
         if (err.name !== 'not_found') {
-          console.error(err);
+          throw err;
         }
       }).then(function () {
         callback();
-      });
-    });
+      }, callback);
+    }, log);
   });
 
   Pouch.allDbs = utils.toPromise(function (callback) {
+    init();
     queue.add(function (callback) {
       pouch.allDocs().then(function (res) {
         var dbs = res.rows.map(function (row) {
@@ -86,16 +93,14 @@ module.exports = function (Pouch) {
   Pouch.resetAllDbs = utils.toPromise(function (callback) {
     queue.add(function (callback) {
       pouch.destroy().then(function () {
+        pouch = null;
         callback();
       }).catch(function (err) {
         console.error(err);
         callback(err);
       });
     }, callback);
-    init();
   });
-  
-  init();
 };
 
 /* istanbul ignore next */

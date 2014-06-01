@@ -60,12 +60,6 @@ function tests(dbName) {
     series(functions);
   }
 
-  function setTimeoutPromise(time) {
-    return new Promise(function (resolve) {
-      setTimeout(resolve, time);
-    });
-  }
-
   describe('allDbs', function () {
 
     var dbs = [];
@@ -75,8 +69,6 @@ function tests(dbName) {
       return Promise.all(dbs.map(function (db) {
         return PouchDB.destroy(db);
       })).then(function () {
-        return setTimeoutPromise(100);
-      }).then(function () {
         return PouchDB.resetAllDbs();
       });
     });
