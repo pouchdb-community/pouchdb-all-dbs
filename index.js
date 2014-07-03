@@ -39,6 +39,10 @@ module.exports = function (Pouch) {
 
     if (dbName === ALL_DBS_NAME) {
       return;
+    } else if (dbName.indexOf('-mrview-') !== -1) {
+      // HACK: get rid of this when we have a real 'onDependentDbRegistered'
+      // event (pouchdb/pouchdb#2438)
+      return;
     }
     init();
     queue.add(function (callback) {
