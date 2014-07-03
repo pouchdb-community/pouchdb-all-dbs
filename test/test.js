@@ -61,6 +61,7 @@ function tests(dbName) {
   }
 
   describe('allDbs', function () {
+    this.timeout(10000);
 
     var dbs = [];
 
@@ -256,6 +257,44 @@ function tests(dbName) {
         });
       });
     });
+
+
+    it('doesn\'t return the mapreduce db', function (done) {
+
+      var pouchName = dbName;
+      dbs = [dbName];
+      // create db
+      new PouchDB(pouchName, function (err, db) {
+        if (err) {
+          return done(err);
+        }
+        var ddoc = {
+          _id: "_design/foo",
+          views: {
+            foo: {
+              map: function () {}.toString()
+            }
+          }
+        };
+        db.put(ddoc).then(function (info) {
+          ddoc._rev = info.rev;
+          return db.query('foo');
+        }).then(function () {
+          return PouchDB.allDbs();
+        }).then(function (dbs) {
+          dbs.should.have.length(1);
+          return db.remove(ddoc);
+        }).then(function () {
+          return db.viewCleanup();
+        }).then(function () {
+          return PouchDB.allDbs();
+        }).then(function (dbs) {
+          dbs.should.have.length(1);
+        }).then(function () { done(); }, done);
+      });
+    });
+
+
     // Test for return value of allDbs
     // The format should follow the following rules:
     // 1. if an adapter is specified upon Pouch creation, the dbname will
