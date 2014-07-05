@@ -34,14 +34,18 @@ module.exports = function (Pouch) {
     return name.replace(/^_pouch_/, ''); // TODO: remove when fixed in Pouch
   }
 
+  function canIgnore(dbName) {
+    return (dbName === ALL_DBS_NAME) ||
+      // TODO: get rid of this when we have a real 'onDependentDbRegistered'
+      // event (pouchdb/pouchdb#2438)
+      (dbName.indexOf('-mrview-') !== -1) ||
+      // TODO: might be a better way to detect remote DBs
+      (/^https?:\/\//.test(dbName));
+  }
+
   Pouch.on('created', function (dbName) {
     dbName = normalize(dbName);
-
-    if (dbName === ALL_DBS_NAME) {
-      return;
-    } else if (dbName.indexOf('-mrview-') !== -1) {
-      // HACK: get rid of this when we have a real 'onDependentDbRegistered'
-      // event (pouchdb/pouchdb#2438)
+    if (canIgnore(dbName)) {
       return;
     }
     init();
@@ -61,7 +65,7 @@ module.exports = function (Pouch) {
 
   Pouch.on('destroyed', function (dbName) {
     dbName = normalize(dbName);
-    if (dbName === ALL_DBS_NAME) {
+    if (canIgnore(dbName)) {
       return;
     }
     init();
