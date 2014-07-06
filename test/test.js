@@ -354,5 +354,23 @@ function tests(dbName) {
         });
       });
     });
+
+    it('saves databases with names starting with an underscore.', function (done) {
+      var pouchName = "_" + dbName;
+      dbs = [pouchName];
+      // create db
+      new PouchDB(pouchName, function (err) {
+        if (err) {
+          return done(err);
+        }
+        PouchDB.allDbs(function (err, allDbs) {
+          if (err) {
+            return done(err);
+          }
+          allDbs.should.deep.equal(dbs);
+          done();
+        });
+      });
+    });
   });
 }

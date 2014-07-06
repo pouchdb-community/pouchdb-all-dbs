@@ -3,6 +3,20 @@
 var utils = require('./pouch-utils');
 var TaskQueue = require('./taskqueue');
 
+var PREFIX = "db_";
+
+function prefixed(dbName) {
+  //A database name starting with an underscore is valid, but a document
+  //id starting with an underscore is not in most cases. Because of
+  //that, they're prefixed in the all dbs database. See issue #7 for
+  //more info.
+  return PREFIX + dbName;
+}
+
+function unprefixed(dbName) {
+  return dbName.slice(PREFIX.length);
+}
+
 module.exports = function (Pouch) {
 
   var ALL_DBS_NAME = 'pouch__all_dbs__';
@@ -48,6 +62,7 @@ module.exports = function (Pouch) {
     if (canIgnore(dbName)) {
       return;
     }
+    dbName = prefixed(dbName);
     init();
     queue.add(function (callback) {
       pouch.get(dbName).then(function () {
@@ -68,6 +83,7 @@ module.exports = function (Pouch) {
     if (canIgnore(dbName)) {
       return;
     }
+    dbName = prefixed(dbName);
     init();
     queue.add(function (callback) {
       pouch.get(dbName).then(function (doc) {
@@ -88,7 +104,7 @@ module.exports = function (Pouch) {
     queue.add(function (callback) {
       pouch.allDocs().then(function (res) {
         var dbs = res.rows.map(function (row) {
-          return row.key;
+          return unprefixed(row.key);
         });
         callback(null, dbs);
       }).catch(function (err) {
