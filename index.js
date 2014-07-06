@@ -102,7 +102,9 @@ module.exports = function (Pouch) {
   Pouch.allDbs = utils.toPromise(function (callback) {
     init();
     queue.add(function (callback) {
-      pouch.allDocs().then(function (res) {
+      // older versions of this module didn't have prefixes, so check here
+      var opts = {startkey: PREFIX, endkey: (PREFIX + '\uffff')};
+      pouch.allDocs(opts).then(function (res) {
         var dbs = res.rows.map(function (row) {
           return unprefixed(row.key);
         });
