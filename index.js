@@ -21,6 +21,7 @@ module.exports = function (Pouch) {
 
   var ALL_DBS_NAME = 'pouch__all_dbs__';
   var pouch;
+  var cache;
   var queue = new TaskQueue();
 
   function log(err) {
@@ -73,6 +74,9 @@ module.exports = function (Pouch) {
         }
         return pouch.put({_id: dbName});
       }).then(function () {
+        if (cache) {
+          cache[dbName] = true;
+        }
         callback();
       }, callback);
     }, log);
@@ -94,6 +98,9 @@ module.exports = function (Pouch) {
           throw err;
         }
       }).then(function () {
+        if (cache) {
+          delete cache[dbName];
+        }
         callback();
       }, callback);
     }, log);
@@ -102,11 +109,19 @@ module.exports = function (Pouch) {
   Pouch.allDbs = utils.toPromise(function (callback) {
     init();
     queue.add(function (callback) {
+
+      if (cache) {
+        return callback(null, Object.keys(cache).map(unprefixed));
+      }
+
       // older versions of this module didn't have prefixes, so check here
       var opts = {startkey: PREFIX, endkey: (PREFIX + '\uffff')};
       pouch.allDocs(opts).then(function (res) {
-        var dbs = res.rows.map(function (row) {
-          return unprefixed(row.key);
+        cache = {};
+        var dbs = [];
+        res.rows.forEach(function (row) {
+          dbs.push(unprefixed(row.key));
+          cache[row.key] = true;
         });
         callback(null, dbs);
       }).catch(function (err) {
@@ -120,6 +135,7 @@ module.exports = function (Pouch) {
     queue.add(function (callback) {
       pouch.destroy().then(function () {
         pouch = null;
+        cache = null;
         callback();
       }).catch(function (err) {
         console.error(err);
