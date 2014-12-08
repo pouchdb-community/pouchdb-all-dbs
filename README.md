@@ -3,9 +3,9 @@ PouchDB allDbs() plugin
 
 [![Build Status](https://travis-ci.org/nolanlawson/pouchdb-all-dbs.svg)](https://travis-ci.org/nolanlawson/pouchdb-all-dbs)
 
-`allDbs()` was deprecated in PouchDB 2.0.0, but that doesn't mean it can't live on as a plugin!
-
 This plugin exposes the `PouchDB.allDbs()` function, which you can use to list all local databases. It works by listening for `PouchDB.on('created')` and `PouchDB.on('destroyed')` events, and maintaining a separate database to store the names of those databases.
+
+*Note*: `allDbs()` used to be part of PouchDB core, enabled using `PouchDB.enableAllDbs = true`. It was deprecated in PouchDB 2.0.0, and now lives on as a plugin.
 
 Usage
 -----
