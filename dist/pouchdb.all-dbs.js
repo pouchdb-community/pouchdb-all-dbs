@@ -4,10 +4,25 @@
 var utils = require('./pouch-utils');
 var TaskQueue = require('./taskqueue');
 
+var PREFIX = "db_";
+
+function prefixed(dbName) {
+  //A database name starting with an underscore is valid, but a document
+  //id starting with an underscore is not in most cases. Because of
+  //that, they're prefixed in the all dbs database. See issue #7 for
+  //more info.
+  return PREFIX + dbName;
+}
+
+function unprefixed(dbName) {
+  return dbName.slice(PREFIX.length);
+}
+
 module.exports = function (Pouch) {
 
   var ALL_DBS_NAME = 'pouch__all_dbs__';
   var pouch;
+  var cache;
   var queue = new TaskQueue();
 
   function log(err) {
@@ -35,12 +50,21 @@ module.exports = function (Pouch) {
     return name.replace(/^_pouch_/, ''); // TODO: remove when fixed in Pouch
   }
 
+  function canIgnore(dbName) {
+    return (dbName === ALL_DBS_NAME) ||
+      // TODO: get rid of this when we have a real 'onDependentDbRegistered'
+      // event (pouchdb/pouchdb#2438)
+      (dbName.indexOf('-mrview-') !== -1) ||
+      // TODO: might be a better way to detect remote DBs
+      (/^https?:\/\//.test(dbName));
+  }
+
   Pouch.on('created', function (dbName) {
     dbName = normalize(dbName);
-
-    if (dbName === ALL_DBS_NAME) {
+    if (canIgnore(dbName)) {
       return;
     }
+    dbName = prefixed(dbName);
     init();
     queue.add(function (callback) {
       pouch.get(dbName).then(function () {
@@ -51,6 +75,9 @@ module.exports = function (Pouch) {
         }
         return pouch.put({_id: dbName});
       }).then(function () {
+        if (cache) {
+          cache[dbName] = true;
+        }
         callback();
       }, callback);
     }, log);
@@ -58,9 +85,10 @@ module.exports = function (Pouch) {
 
   Pouch.on('destroyed', function (dbName) {
     dbName = normalize(dbName);
-    if (dbName === ALL_DBS_NAME) {
+    if (canIgnore(dbName)) {
       return;
     }
+    dbName = prefixed(dbName);
     init();
     queue.add(function (callback) {
       pouch.get(dbName).then(function (doc) {
@@ -71,6 +99,9 @@ module.exports = function (Pouch) {
           throw err;
         }
       }).then(function () {
+        if (cache) {
+          delete cache[dbName];
+        }
         callback();
       }, callback);
     }, log);
@@ -79,9 +110,19 @@ module.exports = function (Pouch) {
   Pouch.allDbs = utils.toPromise(function (callback) {
     init();
     queue.add(function (callback) {
-      pouch.allDocs().then(function (res) {
-        var dbs = res.rows.map(function (row) {
-          return row.key;
+
+      if (cache) {
+        return callback(null, Object.keys(cache).map(unprefixed));
+      }
+
+      // older versions of this module didn't have prefixes, so check here
+      var opts = {startkey: PREFIX, endkey: (PREFIX + '\uffff')};
+      pouch.allDocs(opts).then(function (res) {
+        cache = {};
+        var dbs = [];
+        res.rows.forEach(function (row) {
+          dbs.push(unprefixed(row.key));
+          cache[row.key] = true;
         });
         callback(null, dbs);
       })["catch"](function (err) {
@@ -95,6 +136,7 @@ module.exports = function (Pouch) {
     queue.add(function (callback) {
       pouch.destroy().then(function () {
         pouch = null;
+        cache = null;
         callback();
       })["catch"](function (err) {
         console.error(err);
@@ -109,7 +151,7 @@ if (typeof window !== 'undefined' && window.PouchDB) {
   module.exports(window.PouchDB);
 }
 
-},{"./pouch-utils":24,"./taskqueue":25}],2:[function(require,module,exports){
+},{"./pouch-utils":25,"./taskqueue":26}],2:[function(require,module,exports){
 'use strict';
 
 module.exports = argsArray;
@@ -224,13 +266,14 @@ var reject = require('./reject');
 var resolve = require('./resolve');
 var INTERNAL = require('./INTERNAL');
 var handlers = require('./handlers');
-var noArray = reject(new TypeError('must be an array'));
-module.exports = function all(iterable) {
+module.exports = all;
+function all(iterable) {
   if (Object.prototype.toString.call(iterable) !== '[object Array]') {
-    return noArray;
+    return reject(new TypeError('must be an array'));
   }
 
   var len = iterable.length;
+  var called = false;
   if (!len) {
     return resolve([]);
   }
@@ -246,17 +289,21 @@ module.exports = function all(iterable) {
   return promise;
   function allResolver(value, i) {
     resolve(value).then(resolveFromAll, function (error) {
-      handlers.reject(promise, error);
+      if (!called) {
+        called = true;
+        handlers.reject(promise, error);
+      }
     });
     function resolveFromAll(outValue) {
       values[i] = outValue;
-      if (++resolved === len) {
+      if (++resolved === len & !called) {
+        called = true;
         handlers.resolve(promise, values);
       }
     }
   }
-};
-},{"./INTERNAL":6,"./handlers":8,"./promise":10,"./reject":12,"./resolve":13}],8:[function(require,module,exports){
+}
+},{"./INTERNAL":6,"./handlers":8,"./promise":10,"./reject":13,"./resolve":14}],8:[function(require,module,exports){
 'use strict';
 var tryCatch = require('./tryCatch');
 var resolveThenable = require('./resolveThenable');
@@ -302,13 +349,14 @@ function getThen(obj) {
     };
   }
 }
-},{"./resolveThenable":14,"./states":15,"./tryCatch":16}],9:[function(require,module,exports){
+},{"./resolveThenable":15,"./states":16,"./tryCatch":17}],9:[function(require,module,exports){
 module.exports = exports = require('./promise');
 
 exports.resolve = require('./resolve');
 exports.reject = require('./reject');
 exports.all = require('./all');
-},{"./all":7,"./promise":10,"./reject":12,"./resolve":13}],10:[function(require,module,exports){
+exports.race = require('./race');
+},{"./all":7,"./promise":10,"./race":12,"./reject":13,"./resolve":14}],10:[function(require,module,exports){
 'use strict';
 
 var unwrap = require('./unwrap');
@@ -354,7 +402,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
   return promise;
 };
 
-},{"./INTERNAL":6,"./queueItem":11,"./resolveThenable":14,"./states":15,"./unwrap":17}],11:[function(require,module,exports){
+},{"./INTERNAL":6,"./queueItem":11,"./resolveThenable":15,"./states":16,"./unwrap":18}],11:[function(require,module,exports){
 'use strict';
 var handlers = require('./handlers');
 var unwrap = require('./unwrap');
@@ -383,7 +431,48 @@ QueueItem.prototype.callRejected = function (value) {
 QueueItem.prototype.otherCallRejected = function (value) {
   unwrap(this.promise, this.onRejected, value);
 };
-},{"./handlers":8,"./unwrap":17}],12:[function(require,module,exports){
+},{"./handlers":8,"./unwrap":18}],12:[function(require,module,exports){
+'use strict';
+var Promise = require('./promise');
+var reject = require('./reject');
+var resolve = require('./resolve');
+var INTERNAL = require('./INTERNAL');
+var handlers = require('./handlers');
+module.exports = race;
+function race(iterable) {
+  if (Object.prototype.toString.call(iterable) !== '[object Array]') {
+    return reject(new TypeError('must be an array'));
+  }
+
+  var len = iterable.length;
+  var called = false;
+  if (!len) {
+    return resolve([]);
+  }
+
+  var resolved = 0;
+  var i = -1;
+  var promise = new Promise(INTERNAL);
+  
+  while (++i < len) {
+    resolver(iterable[i]);
+  }
+  return promise;
+  function resolver(value) {
+    resolve(value).then(function (response) {
+      if (!called) {
+        called = true;
+        handlers.resolve(promise, response);
+      }
+    }, function (error) {
+      if (!called) {
+        called = true;
+        handlers.reject(promise, error);
+      }
+    });
+  }
+}
+},{"./INTERNAL":6,"./handlers":8,"./promise":10,"./reject":13,"./resolve":14}],13:[function(require,module,exports){
 'use strict';
 
 var Promise = require('./promise');
@@ -395,7 +484,7 @@ function reject(reason) {
 	var promise = new Promise(INTERNAL);
 	return handlers.reject(promise, reason);
 }
-},{"./INTERNAL":6,"./handlers":8,"./promise":10}],13:[function(require,module,exports){
+},{"./INTERNAL":6,"./handlers":8,"./promise":10}],14:[function(require,module,exports){
 'use strict';
 
 var Promise = require('./promise');
@@ -430,7 +519,7 @@ function resolve(value) {
       return EMPTYSTRING;
   }
 }
-},{"./INTERNAL":6,"./handlers":8,"./promise":10}],14:[function(require,module,exports){
+},{"./INTERNAL":6,"./handlers":8,"./promise":10}],15:[function(require,module,exports){
 'use strict';
 var handlers = require('./handlers');
 var tryCatch = require('./tryCatch');
@@ -463,13 +552,13 @@ function safelyResolveThenable(self, thenable) {
   }
 }
 exports.safely = safelyResolveThenable;
-},{"./handlers":8,"./tryCatch":16}],15:[function(require,module,exports){
+},{"./handlers":8,"./tryCatch":17}],16:[function(require,module,exports){
 // Lazy man's symbols for states
 
 exports.REJECTED = ['REJECTED'];
 exports.FULFILLED = ['FULFILLED'];
 exports.PENDING = ['PENDING'];
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 module.exports = tryCatch;
@@ -485,7 +574,7 @@ function tryCatch(func, value) {
   }
   return out;
 }
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 var immediate = require('immediate');
@@ -507,7 +596,7 @@ function unwrap(promise, func, value) {
     }
   });
 }
-},{"./handlers":8,"immediate":18}],18:[function(require,module,exports){
+},{"./handlers":8,"immediate":19}],19:[function(require,module,exports){
 'use strict';
 var types = [
   require('./nextTick'),
@@ -518,7 +607,8 @@ var types = [
 ];
 var draining;
 var queue = [];
-function drainQueue() {
+//named nextTick for less confusing stack traces
+function nextTick() {
   draining = true;
   var i, oldQueue;
   var len = queue.length;
@@ -538,7 +628,7 @@ var i = -1;
 var len = types.length;
 while (++ i < len) {
   if (types[i] && types[i].test && types[i].test()) {
-    scheduleDrain = types[i].install(drainQueue);
+    scheduleDrain = types[i].install(nextTick);
     break;
   }
 }
@@ -548,7 +638,7 @@ function immediate(task) {
     scheduleDrain();
   }
 }
-},{"./messageChannel":19,"./mutation.js":20,"./nextTick":3,"./stateChange":21,"./timeout":22}],19:[function(require,module,exports){
+},{"./messageChannel":20,"./mutation.js":21,"./nextTick":3,"./stateChange":22,"./timeout":23}],20:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};'use strict';
 
 exports.test = function () {
@@ -567,7 +657,7 @@ exports.install = function (func) {
     channel.port2.postMessage(0);
   };
 };
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};'use strict';
 //based off rsvp https://github.com/tildeio/rsvp.js
 //license https://github.com/tildeio/rsvp.js/blob/master/LICENSE
@@ -590,7 +680,7 @@ exports.install = function (handle) {
     element.data = (called = ++called % 2);
   };
 };
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};'use strict';
 
 exports.test = function () {
@@ -615,7 +705,7 @@ exports.install = function (handle) {
     return handle;
   };
 };
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 'use strict';
 exports.test = function () {
   return true;
@@ -626,7 +716,7 @@ exports.install = function (t) {
     setTimeout(t, 0);
   };
 };
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 'use strict';
 
 // Simple FIFO queue implementation to avoid having to do shift()
@@ -676,7 +766,7 @@ Queue.prototype.slice = function (start, end) {
 
 module.exports = Queue;
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var process=require("__browserify_process"),global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};'use strict';
 
 var Promise;
@@ -760,7 +850,7 @@ exports.toPromise = function (func) {
 
 exports.inherits = require('inherits');
 
-},{"__browserify_process":4,"inherits":5,"lie":9}],25:[function(require,module,exports){
+},{"__browserify_process":4,"inherits":5,"lie":9}],26:[function(require,module,exports){
 var process=require("__browserify_process"),global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};'use strict';
 
 var argsarray = require('argsarray');
@@ -799,5 +889,5 @@ TaskQueue.prototype.processNext = function () {
 
 module.exports = TaskQueue;
 
-},{"__browserify_process":4,"argsarray":2,"tiny-queue":23}]},{},[1])
+},{"__browserify_process":4,"argsarray":2,"tiny-queue":24}]},{},[1])
 ;
