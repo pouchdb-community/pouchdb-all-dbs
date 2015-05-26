@@ -68,7 +68,7 @@ function tests(dbName) {
     afterEach(function () {
       // Remove old allDbs to prevent DOM exception
       return Promise.all(dbs.map(function (db) {
-        return PouchDB.destroy(db);
+        return new PouchDB(db).destroy();
       })).then(function () {
         return PouchDB.resetAllDbs();
       });
@@ -79,7 +79,7 @@ function tests(dbName) {
       var pouchName = dbName;
       dbs = [dbName];
       function after(err) {
-        PouchDB.destroy(pouchName, function (er) {
+        new PouchDB(pouchName).destroy(function (er) {
           if (er) {
             done(er);
           } else {
@@ -111,7 +111,7 @@ function tests(dbName) {
       var pouchName = dbName;
       dbs = [dbName];
       function after(err) {
-        PouchDB.destroy(pouchName, function (er) {
+        new PouchDB(pouchName).destroy(function (er) {
           if (er) {
             done(er);
           } else {
@@ -154,7 +154,7 @@ function tests(dbName) {
           }).should.equal(true, 'pouch exists in allDbs database, dbs are ' +
               JSON.stringify(dbs) + ', tested against ' + pouchName);
           // remove db
-          PouchDB.destroy(pouchName, function (err) {
+          new PouchDB(pouchName).destroy(function (err) {
             if (err) {
               return done(err);
             }
@@ -199,7 +199,7 @@ function tests(dbName) {
           // destroy remaining pouches
           async(pouchNames.map(function (pouch) {
             return function (callback) {
-              PouchDB.destroy(pouch, callback);
+              new PouchDB(pouch).destroy(callback);
             };
           }), function (err) {
             done(err);
@@ -233,7 +233,7 @@ function tests(dbName) {
           //
           async(pouchNames.map(function (pouch) {
             return function (callback) {
-              return PouchDB.destroy(pouch, callback);
+              return new PouchDB(pouch).destroy(callback);
             };
           }), function (err) {
             if (err) {
@@ -329,7 +329,7 @@ function tests(dbName) {
           // destroy pouches
           async(pouchNames.map(function (db) {
             return function (callback) {
-              PouchDB.destroy(db, callback);
+              new PouchDB(db).destroy(callback);
             };
           }), function (err) {
             if (err) {
