@@ -10,6 +10,8 @@ This plugin exposes the `PouchDB.allDbs()` function, which you can use to list a
 Usage
 -----
 
+### In the browser
+
 To use this plugin, include it after `pouchdb.js` in your HTML page:
 
 ```html
@@ -23,7 +25,11 @@ This plugin is also available from Bower:
 bower install pouchdb-all-dbs
 ```
 
-Or to use it in Node.js, just npm install it:
+Merely including it as a script tag will work, assuming you also used a script tag for PouchDB.
+
+### In Node/Browserify/Webpack/etc.
+
+First, npm install it:
 
 ```
 npm install pouchdb-all-dbs
