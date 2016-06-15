@@ -2,7 +2,7 @@
   "name": "pouchdb-all-dbs",
   "version": "1.0.1",
   "description": "PouchDB allDbs plugin",
-  "main": "index.js",
+  "main": "lib/index.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/nolanlawson/pouchdb-all-dbs.git"
@@ -23,9 +23,9 @@
   "scripts": {
     "test-node": "TEST_DB=testdb istanbul test ./node_modules/mocha/bin/_mocha test/test.js",
     "test-browser": "./bin/test-browser.js",
-    "jshint": "jshint -c .jshintrc *.js test/test.js",
+    "jshint": "jshint -c .jshintrc lib/*.js test/test.js",
     "test": "npm run jshint && ./bin/run-test.sh",
-    "build": "mkdir -p dist && browserify index.js -o dist/pouchdb.all-dbs.js && npm run min",
+    "build": "mkdir -p dist && browserify . -o dist/pouchdb.all-dbs.js && npm run min",
     "min": "uglifyjs dist/pouchdb.all-dbs.js -mc > dist/pouchdb.all-dbs.min.js",
     "dev": "browserify test/test.js > test/test-bundle.js && npm run dev-server",
     "dev-server": "./bin/dev-server.js",
@@ -35,7 +35,7 @@
     "argsarray": "0.0.1",
     "es3ify": "^0.1.3",
     "inherits": "~2.0.1",
-    "lie": "^2.6.0",
+    "pouchdb-promise": "5.4.3",
     "tiny-queue": "^0.2.0"
   },
   "devDependencies": {
@@ -48,7 +48,7 @@
     "jshint": "~2.3.0",
     "mocha": "~1.18",
     "phantomjs": "^1.9.7-5",
-    "pouchdb": "pouchdb/pouchdb",
+    "pouchdb-memory": "^1.0.0",
     "request": "^2.36.0",
     "sauce-connect-launcher": "^0.4.2",
     "selenium-standalone": "^3.0.2",
@@ -63,5 +63,6 @@
     "transform": [
       "es3ify"
     ]
-  }
+  },
+  "files": ["lib", "dist"]
 }

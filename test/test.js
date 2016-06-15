@@ -1,14 +1,13 @@
 /*jshint expr:true */
 'use strict';
 
-var Pouch = require('pouchdb');
-var PouchDB = Pouch;
+var PouchDB = require('pouchdb-memory');
 
 //
 // your plugin goes here
 //
 var plugin = require('../');
-plugin(Pouch);
+plugin(PouchDB);
 
 var chai = require('chai');
 chai.use(require("chai-as-promised"));
