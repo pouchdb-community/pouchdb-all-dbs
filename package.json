@@ -48,7 +48,7 @@
     "jshint": "~2.8.0",
     "mocha": "^2.4.5",
     "phantomjs-prebuilt": "^2.1.7",
-    "pouchdb": "^5.4.0",
+    "pouchdb": "^7.1.1",
     "request": "^2.36.0",
     "sauce-connect-launcher": "^0.14.0",
     "selenium-standalone": "^5.1.0",
