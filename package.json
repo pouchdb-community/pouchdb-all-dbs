@@ -21,7 +21,7 @@
     "url": "https://github.com/nolanlawson/pouchdb-all-dbs/issues"
   },
   "scripts": {
-    "test-node": "TEST_DB=testdb istanbul test ./node_modules/mocha/bin/_mocha test/test.js",
+    "test-node": "TEST_DB=testdb nyc mocha --include test/test.js --exclude test/webrunner.js",
     "test-browser": "./bin/test-browser.js",
     "jshint": "jshint -c .jshintrc lib/*.js test/test.js",
     "test": "npm run jshint && ./bin/run-test.sh",
@@ -29,7 +29,7 @@
     "min": "uglifyjs dist/pouchdb.all-dbs.js -mc > dist/pouchdb.all-dbs.min.js",
     "dev": "browserify test/test.js > test/test-bundle.js && npm run dev-server",
     "dev-server": "./bin/dev-server.js",
-    "coverage": "npm test --coverage && istanbul check-coverage --lines 100 --function 100 --statements 100 --branches 100"
+    "coverage": "npm test --coverage && nyc check-coverage --lines 100 --function 100 --statements 100 --branches 100"
   },
   "dependencies": {
     "argsarray": "0.0.1",
@@ -44,9 +44,9 @@
     "chai": "^4.3.0",
     "chai-as-promised": "^7.1.1",
     "http-server": "~0.12.3",
-    "istanbul": "^0.4.5",
     "jshint": "~2.12.0",
     "mocha": "^8.3.0",
+    "nyc": "^15.1.0",
     "phantomjs-prebuilt": "^2.1.7",
     "pouchdb": "^7.2.2",
     "request": "^2.36.0",
