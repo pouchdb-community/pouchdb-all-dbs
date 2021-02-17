@@ -31,34 +31,6 @@ dbs.split(',').forEach(function (db) {
 });
 
 function tests(dbName) {
-
-  // async method takes an array of functions of signature:
-  // `function (cb) {}`
-  // each function is called and `callback` is called when all
-  // functions are done.
-  // each function calls `cb` to signal completion
-  // cb is called with error as the first arguments (if any)
-  // Once all functions are completed (or upon err)
-  // callback is called `callback(err)`
-  function async(functions, callback) {
-    function series(functions) {
-      callback = callback || function () {
-      };
-      if (!functions.length) {
-        return callback();
-      }
-      var fn = functions.shift();
-      fn.call(fn, function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        series(functions);
-      });
-    }
-    series(functions);
-  }
-
   describe('allDbs', function () {
     this.timeout(10000);
 
@@ -87,10 +59,8 @@ function tests(dbName) {
         });
       }
       // create db
-      new PouchDB(pouchName, function (err) {
-        if (err) {
-          return after(err);
-        }
+      var newPouch = new PouchDB(pouchName);
+      newPouch.info().then(function() {
         PouchDB.allDbs(function (err, dbs) {
           if (err) {
             return after(err);
@@ -119,10 +89,9 @@ function tests(dbName) {
         });
       }
       // create db
-      new PouchDB(pouchName, function (err) {
-        if (err) {
-          return after(err);
-        }
+
+      var newPouch = new PouchDB(pouchName);
+      newPouch.info().then(function() {
         PouchDB.allDbs().then(function (dbs) {
           // check if pouchName exists in _all_db
           dbs.some(function (dbname) {
@@ -139,10 +108,8 @@ function tests(dbName) {
       var pouchName = dbName;
       dbs = [dbName];
       // create db
-      new PouchDB(pouchName, function (err) {
-        if (err) {
-          return done(err);
-        }
+      var newPouch = new PouchDB(pouchName);
+      newPouch.info().then(function() {
         PouchDB.allDbs(function (err, dbs) {
           if (err) {
             return done(err);
@@ -176,14 +143,11 @@ function tests(dbName) {
     it('Create Multiple Pouches', function (done) {
       var pouchNames = [dbName + '_1', dbName + '_2'];
       dbs = pouchNames;
-      async(pouchNames.map(function (pouch) {
-        return function (callback) {
-          new PouchDB(pouch, callback);
-        };
-      }), function (err) {
-        if (err) {
-          return done(err);
-        }
+      
+      Promise.all(pouchNames.map(function (pouch) {
+        var newPouch = new PouchDB(pouch);
+        return newPouch.info();
+      })).then(function () {
         PouchDB.allDbs(function (err, dbs) {
           if (err) {
             return done(err);
@@ -196,27 +160,26 @@ function tests(dbName) {
                 JSON.stringify(dbs) + ', tested against ' + pouch);
           });
           // destroy remaining pouches
-          async(pouchNames.map(function (pouch) {
-            return function (callback) {
-              new PouchDB(pouch).destroy(callback);
-            };
-          }), function (err) {
+          Promise.all(pouchNames.map(function (pouch) {
+            return new PouchDB(pouch).destroy();
+          })).then(function() {
+            done();
+          }).catch(function (err) {
             done(err);
           });
         });
+      }).catch(function (err) {
+        done(err);
       });
     });
     it('Create and Destroy Multiple Pouches', function (done) {
       var pouchNames = [dbName + '_1', dbName + '_2'];
       dbs = pouchNames;
-      async(pouchNames.map(function (pouch) {
-        return function (callback) {
-          new PouchDB(pouch, callback);
-        };
-      }), function (err) {
-        if (err) {
-          return done(err);
-        }
+
+      Promise.all(pouchNames.map(function (pouch) {
+        var newPouch = new PouchDB(pouch);
+        return newPouch.info();
+      })).then(function () {
         PouchDB.allDbs(function (err, dbs) {
           if (err) {
             return done(err);
@@ -230,14 +193,9 @@ function tests(dbName) {
           //
           // Destroy all Pouches
           //
-          async(pouchNames.map(function (pouch) {
-            return function (callback) {
-              return new PouchDB(pouch).destroy(callback);
-            };
-          }), function (err) {
-            if (err) {
-              return done(err);
-            }
+          Promise.all(pouchNames.map(function (pouch) {
+            return new PouchDB(pouch).destroy();
+          })).then(function() {
             PouchDB.allDbs(function (err, dbs) {
               if (err) {
                 return done(err);
@@ -252,21 +210,20 @@ function tests(dbName) {
               });
               done();
             });
+          }).catch(function (err) {
+            done(err);
           });
         });
+      }).catch(function (err) {
+        done(err);
       });
     });
-
-
     it('doesn\'t return the mapreduce db', function (done) {
-
       var pouchName = dbName;
       dbs = [dbName];
       // create db
-      new PouchDB(pouchName, function (err, db) {
-        if (err) {
-          return done(err);
-        }
+      var db = new PouchDB(pouchName);
+      db.info().then(function() {
         var ddoc = {
           _id: "_design/foo",
           views: {
@@ -290,9 +247,10 @@ function tests(dbName) {
         }).then(function (dbs) {
           dbs.should.have.length(1);
         }).then(function () { done(); }, done);
+      }).catch(function(err) {
+        done(err);
       });
     });
-
 
     // Test for return value of allDbs
     // The format should follow the following rules:
@@ -305,14 +263,10 @@ function tests(dbName) {
         function (done) {
       var pouchNames = [dbName + '_1', dbName + '_2'];
       dbs = pouchNames;
-      async(pouchNames.map(function (name) {
-        return function (callback) {
-          new PouchDB(name, callback);
-        };
-      }), function (err) {
-        if (err) {
-          return done(err);
-        }
+      Promise.all(pouchNames.map(function (pouch) {
+        var newPouch = new PouchDB(pouch);
+        return newPouch.info();
+      })).then(function () {
         // check allDbs output
         PouchDB.allDbs(function (err, dbs) {
           if (err) {
@@ -326,11 +280,9 @@ function tests(dbName) {
                 JSON.stringify(dbs) + ', tested against ' + pouch);
           });
           // destroy pouches
-          async(pouchNames.map(function (db) {
-            return function (callback) {
-              new PouchDB(db).destroy(callback);
-            };
-          }), function (err) {
+          Promise.all(pouchNames.map(function (pouch) {
+            return new PouchDB(pouch).destroy();
+          })).then(function() {
             if (err) {
               return done(err);
             }
@@ -349,8 +301,12 @@ function tests(dbName) {
               });
               done();
             });
+          }).catch(function (err) {
+            done(err);
           });
         });
+      }).catch(function (err) {
+        done(err);
       });
     });
 
@@ -358,10 +314,9 @@ function tests(dbName) {
       var pouchName = "_" + dbName;
       dbs = [pouchName];
       // create db
-      new PouchDB(pouchName, function (err) {
-        if (err) {
-          return done(err);
-        }
+
+      var db = new PouchDB(pouchName);
+      db.info().then(function() {
         PouchDB.allDbs(function (err, allDbs) {
           if (err) {
             return done(err);
@@ -369,6 +324,8 @@ function tests(dbName) {
           allDbs.should.deep.equal(dbs);
           done();
         });
+      }).catch(function(err) {
+        done(err);
       });
     });
   });
