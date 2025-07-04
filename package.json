@@ -21,7 +21,7 @@
     "url": "https://github.com/nolanlawson/pouchdb-all-dbs/issues"
   },
   "scripts": {
-    "test-node": "TEST_DB=testdb nyc mocha --include test/test.js --exclude test/webrunner.js",
+    "test-node": "TEST_DB=testdb nyc mocha --include test/test.js --exclude test/webrunner.js --exclude test/test-bundle.js",
     "test-browser": "./bin/test-browser.js",
     "jshint": "jshint -c .jshintrc lib/*.js test/test.js",
     "test": "npm run jshint && ./bin/run-test.sh",
