@@ -16,7 +16,6 @@ chai.use(require("chai-as-promised"));
 // more variables you might want
 //
 chai.should(); // var should = chai.should();
-var Promise = require('bluebird'); // var Promise = require('bluebird');
 
 var dbs;
 if (process.browser) {
