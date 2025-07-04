@@ -32,7 +32,6 @@
     "coverage": "npm test --coverage && nyc check-coverage --lines 100 --function 100 --statements 100 --branches 100"
   },
   "dependencies": {
-    "argsarray": "0.0.1",
     "es3ify": "^0.2.2",
     "inherits": "~2.0.1",
     "pouchdb-promise": "6.4.3",
